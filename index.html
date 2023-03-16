@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <link rel="preload" href="./fonts/Roboto-Regular.woff2" type="font/woff2" as="font" crossorigin="anonymous">
+  <link rel="preload" href="./fonts/Roboto-Regular.woff" type="font/woff" as="font" crossorigin="anonymous">
+
+  <meta charset="utf-8">
+  <title>Поиск репозиториев</title>
+
+  <link rel="stylesheet" href="./styles/reboot.css"></link>
+  <link rel="stylesheet" href="./styles/style.css"></link>
+</head>
+<body>
+  <section class="repositories">
+    <h1 class="repositories__title">Поиск Github-репозиториев</h1>
+
+    <form class="form" name="search">
+      <h2 class="form__title">Введите запрос</h2>
+      <p class="form__field-group">
+        <input class="form__input form__input--request" name="request" type="text">
+        <button class="form__submit button" type="submit">Отправить</button>
+        <span class="error-label">Ошибка получения данных</span>
+      </p>
+    </form>
+
+    <div class="repositories__list"></div>
+  </section>
+
+  <template id="repository-template">
+    <div class="repositories__item repository">
+      <p class="repository__info-item" data-name="login">
+        <strong class="repository__info-title">Пользователь:</strong>
+        <span class="repository__info-text"></span>
+      </p>
+
+      <p class="repository__info-item" data-name="name">
+        <strong class="repository__info-title">Имя репозитория:</strong>
+        <a class="repository__info-text repository__link" href="" target="_blank"></a>
+      </p>
+
+      <p class="repository__info-item" data-name="language">
+        <strong class="repository__info-title">Язык:</strong>
+        <span class="repository__info-text"></span>
+      </p>
+
+      <p class="repository__info-item" data-name="description">
+        <strong class="repository__info-title">Описание:</strong>
+        <span class="repository__info-text"></span>
+      </p>
+    </div>
+  </template>
+
+  <script src="./js/main.js" type="module"></script>
+</body>
+</html>
