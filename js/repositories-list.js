@@ -1,4 +1,11 @@
 import { Repository } from './repository-class.js';
+import { getData, ITEMS_TO_UPLOAD } from './data-api.js';
+import {
+  request,
+  toggleError,
+  errorMessageElement
+} from './search-form.js';
+import { debounce } from './utils.js';
 
 const REPOSITORIES_TEMPLATE_ID = 'repository-template';
 const REPOSITORY_ITEM_CLASS_NAME = 'repository';
@@ -7,75 +14,88 @@ const REPOSITORY_FIELD_CLASS_NAME = 'repository__info-item';
 const REPOSITORY_INFO_CLASS_NAME = 'repository__info-text';
 const REPOSITORY_LINK_CLASS_NAME = 'repository__link';
 const LIST_IS_EMPTY_MESSAGE = 'Ничего не найдено';
-const REPOSITORIES_TO_UPLOAD_COUNT = 5;
-const COORD_TO_UPLOAD_NEW_ITEMS = 50;
+const FOUND_REPOSITORIES_TITLE = 'Найдено репозиториев: ';
+const COORD_TO_UPLOAD_NEW_ITEMS = 100;
+const SCROLL_DELAY = 100;
 
 
 const repositoryTemplate = document.querySelector(`#${REPOSITORIES_TEMPLATE_ID}`)
   .content
   .querySelector(`.${REPOSITORY_ITEM_CLASS_NAME}`);
 
-function renderRepositoriesList(repositories) {
-  const repositoriesListElement = document.querySelector(`.${REPOSITORIES_LIST_CLASS_NAME}`);
+function renderRepositoriesList(data) {
+  if (!getRepositoriesListElement()) return;
 
-  if (!repositoriesListElement) return;
+  resetRepositoriesListElement();
 
-  const itemsCount = repositories.length;
+  const {totalCount} = data;
+  const repositories = data.items;
 
-  if (!itemsCount) {
-    const message = createEmptyMessage();
-    updateRepositoriesListElement(repositoriesListElement, message);
+  if (!totalCount) {
+    setMessage(LIST_IS_EMPTY_MESSAGE);
     return;
   }
 
-  const startItemIndex = 0;
-  let endItemIndex = REPOSITORIES_TO_UPLOAD_COUNT;
+  setMessage(FOUND_REPOSITORIES_TITLE + totalCount);
 
-  uploadRepositories(repositories, startItemIndex, endItemIndex);
+  let prevPage = 1;
+  let currentPage = 1;
 
-  if (itemsCount <= endItemIndex) return;
+  uploadRepositories(repositories);
+
+  const scrollPageDebounced = debounce(
+    () => {
+      const documentBottom = document.documentElement.getBoundingClientRect().bottom;
+      const documentHeight = document.documentElement.clientHeight;
+
+      if (!request.trim() || currentPage * ITEMS_TO_UPLOAD >= totalCount) return false;
+
+      if (documentBottom < documentHeight + COORD_TO_UPLOAD_NEW_ITEMS) {
+        currentPage++;
+
+        if (currentPage === prevPage) return false;
+        prevPage = currentPage;
+
+        getData(
+          currentPage,
+          request,
+          (repositories) => uploadRepositories(repositories.items),
+          () => toggleError(errorMessageElement, true)
+        );
+      }
+    },
+    SCROLL_DELAY
+  );
 
   window.onscroll = () => {
-    const documentBottom = document.documentElement.getBoundingClientRect().bottom;
-    const documentHeight = document.documentElement.clientHeight;
-
-    if (endItemIndex === itemsCount) return false;
-
-    if (documentBottom < documentHeight + COORD_TO_UPLOAD_NEW_ITEMS) {
-      endItemIndex = Math.min(endItemIndex + REPOSITORIES_TO_UPLOAD_COUNT, itemsCount);
-      uploadRepositories(repositories, startItemIndex, endItemIndex);
-    }
+    scrollPageDebounced();
   };
 }
 
-function createEmptyMessage() {
-  const messageElement = document.createElement('h2');
-  messageElement.textContent = LIST_IS_EMPTY_MESSAGE;
-
-  return messageElement;
-}
-
-function updateRepositoriesListElement(element, newContent) {
+function resetRepositoriesListElement() {
+  const element = getRepositoriesListElement();
   const elementClone = element.cloneNode();
-  elementClone.append(newContent);
   element.replaceWith(elementClone);
 }
 
-function uploadRepositories(repositories, startIndex, endIndex) {
-  const repositoriesListElement = document.querySelector(`.${REPOSITORIES_LIST_CLASS_NAME}`);
-  const uploadedRepositories = repositories.slice(startIndex, endIndex);
-  const newContent = getRepositoriesListContent(uploadedRepositories);
-  updateRepositoriesListElement(repositoriesListElement, newContent);
+function getRepositoriesListElement() {
+  return document.querySelector(`.${REPOSITORIES_LIST_CLASS_NAME}`);
+}
+
+function setMessage(message) {
+  const repositoriesListElement = getRepositoriesListElement();
+  const messageElement = document.createElement('h2');
+  messageElement.textContent = message;
+  repositoriesListElement.append(messageElement);
+}
+
+function uploadRepositories(repositories) {
+  const repositoriesListElement = getRepositoriesListElement();
+  const newContent = getRepositoriesListContent(repositories);
+  repositoriesListElement.append(newContent);
 }
 
 function getRepositoriesListContent(repositories) {
-  if (!repositories.length) {
-    const messageElement = document.createElement('h2');
-    messageElement.textContent = LIST_IS_EMPTY_MESSAGE;
-
-    return messageElement;
-  }
-
   const repositoriesFragment = document.createDocumentFragment();
 
   repositories.forEach((repositoryItem) => {

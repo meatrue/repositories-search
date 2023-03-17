@@ -4,6 +4,8 @@ const loader = {
   _loader: null,
 
   on() {
+    if (this._loader) return;
+
     this._loader = document.createElement('div');
     this._loader.classList.add(LOADER_CLASS_NAME);
 
